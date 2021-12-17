@@ -15,7 +15,7 @@ Including another URLconf
 """
 import debug_toolbar
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
 
 admin.site.site_header = "StoreFront Admin"
 admin.site.index_title = "Admin"
@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('__debug__', include(debug_toolbar.urls)),
     path('storefront/', include('storefront.urls')),
+    path('store/', include('store.urls'))
 ]
