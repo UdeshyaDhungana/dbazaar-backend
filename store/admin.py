@@ -24,7 +24,7 @@ class InventoryFilter(admin.SimpleListFilter):
 @admin.register(models.Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_per_page = 20
-    list_display = ['name', 'product_count']
+    list_display = ['title', 'product_count']
     search_fields = ['title']
 
     def product_count(self, collection):
@@ -57,7 +57,7 @@ class ProductAdmin(admin.ModelAdmin):
         return 'Low' if (product.inventory < 10) else 'OK'
 
     def collection_name(self, product):
-        return product.collection.name
+        return product.collection.title
 
     @admin.action(description='Clear Inventory')
     def clear_inventory(self, request, queryset):
