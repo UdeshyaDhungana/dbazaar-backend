@@ -10,7 +10,10 @@ class CollectionSerializer(serializers.ModelSerializer):
     # title = serializers.CharField(max_length=255)
     class Meta:
         model = Collection
-        fields = ['id', 'title']
+        fields = ['id', 'title', 'products_count']
+
+    # we have to define this because products_count is not a field of collection table
+    products_count = serializers.IntegerField()
 
 
 class ProductSerializer(serializers.ModelSerializer):
