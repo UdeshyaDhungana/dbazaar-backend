@@ -1,82 +1,57 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.db.models import Count
+from django.db.models.query import QuerySet
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status
+from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
-from store import serializers
+from store.filters import ProductFilter
+from store.pagination import DefaultPagination
 
-from .models import Collection, Product
-from .serializers import CollectionSerializer, ProductSerializer
-
-
-# Create your views here.
-@api_view(['GET', 'POST'])
-def product_list(request):
-    if (request.method == 'GET'):
-        queryset = Product.objects.select_related('collection').all()
-        # context is for hyperlink reference in serializer
-        serializer = ProductSerializer(queryset,
-                                       many=True,
-                                       context={'request': request})
-        return Response(serializer.data)
-    elif (request.method == 'POST'):
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+from .models import Collection, OrderItem, Product, Review
+from .serializers import (CollectionSerializer, ProductSerializer,
+                          ReviewSerializer)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def product_detail(request, id):
-    product = get_object_or_404(Product, pk=id)
-    if (request.method == 'GET'):
-        serializer = ProductSerializer(product)
-        return Response(serializer.data)
-    elif (request.method == 'PUT'):
-        serializer = ProductSerializer(product, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-    elif (request.method == 'DELETE'):
-        if product.orderitems.count() > 0:
+class ProductsViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    queryset = Product.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = ProductFilter
+    search_fields = ['title', 'description']
+    pagination_class = DefaultPagination
+
+    # def get_queryset(self):
+    #     queryset = Product.objects.all()
+    #     collection_id = self.request.query_params.get('collection_id')
+    #     if collection_id is not None:
+    #         queryset = queryset.filter(collection_id=collection_id)
+    #     return queryset
+
+    def get_serializer_context(self):
+       return {'request': self.request}
+
+    def destroy(self, request, *args, **kwargs):
+        if (OrderItem.objects.filter(product_id=kwargs['pk']).count() > 0):
             return Response(
                 {
                     'error':
                     "Product cannot be deleted because order item exists"
                 },
                 status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        product.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return super().destroy(request, *args, **kwargs)
 
 
-@api_view(['GET', 'POST'])
-def collection_list(request):
-    if (request.method == 'GET'):
-        queryset = Collection.objects.annotate(
-            products_count=Count('product')).all()
-        serializer = CollectionSerializer(queryset, many=True)
-        return Response(serializer.data)
-    elif (request.method == 'POST'):
-        serializer = CollectionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+class CollectionViewSet(ModelViewSet):
+    queryset = Collection.objects.annotate(products_count=Count('products')).all()
+    serializer_class = CollectionSerializer
 
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def collection_detail(request, pk):
-    collection = get_object_or_404(
-        Collection.objects.annotate(products_count=Count('products')), pk=pk)
-    if (request.method == 'GET'):
-        serializer = CollectionSerializer(collection)
-        return Response(serializer.data)
-    elif (request.method == 'PUT'):
-        serializer = CollectionSerializer(collection, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-    elif (request.method == 'DELETE'):
+    def delete(self, request, pk):
+        collection = get_object_or_404(Collection, pk=pk)
         if collection.products.count() > 0:
             return Response(
                 {
@@ -86,3 +61,14 @@ def collection_detail(request, pk):
                 status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ReviewViewSet(ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(product_id=self.kwargs['product_pk'])
+
+    def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}

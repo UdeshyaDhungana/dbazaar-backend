@@ -1,5 +1,6 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxLengthValidator, MinValueValidator
+from django.db.models.fields import related
 
 
 # Create your models here.
@@ -107,3 +108,10 @@ class Promotion(models.Model):
     discount = models.FloatField()
     # since the actual object is important, we describe this many-to-many relationship
     # inside product class: See product class
+
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    date = models.DateField(auto_now_add=True)
