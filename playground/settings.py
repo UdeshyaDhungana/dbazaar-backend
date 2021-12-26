@@ -41,9 +41,10 @@ INSTALLED_APPS = [
     'django_filters',
     'storefront',
     'debug_toolbar',
-    'tags',
     'store',
+    'tags',
     'likes',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -110,6 +111,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTH_USER_MODEL = 'core.User'
 
 
 # Internationalization
