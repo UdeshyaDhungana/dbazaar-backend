@@ -19,10 +19,11 @@ class ProductsViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
-    queryset = Product.objects.all()
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = ProductFilter
+
     search_fields = ['title', 'description']
+    
     pagination_class = DefaultPagination
 
     # def get_queryset(self):
@@ -51,6 +52,8 @@ class CollectionViewSet(ModelViewSet):
         products_count=Count('products')).all()
     serializer_class = CollectionSerializer
 
+    # logic of delete needs to be manually written
+    # can't delete a collection if there is at least one product in the collection
     def delete(self, request, pk):
         collection = get_object_or_404(Collection, pk=pk)
         if collection.products.count() > 0:

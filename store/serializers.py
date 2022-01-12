@@ -1,7 +1,5 @@
 from decimal import Decimal
-
 from rest_framework import serializers
-
 from .models import Cart, CartItem, Collection, Product, Review
 
 
@@ -38,6 +36,12 @@ class ProductSerializer(serializers.ModelSerializer):
         return product.unit_price * Decimal(1.1)
 
 
+class SimpleProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'title', 'unit_price']
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
@@ -48,11 +52,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         return Review.objects.create(product_id=product_id, **validated_data)
 
 
-class SimpleProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'title', 'unit_price']
-
 class CartItemSerializer(serializers.ModelSerializer):
     product = SimpleProductSerializer()
     total_price = serializers.SerializerMethodField()
@@ -62,20 +61,6 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     def get_total_price(self, cartItem: CartItem):
         return (cartItem.quantity * cartItem.product.unit_price)
-
-
-class CartSerializer(serializers.ModelSerializer):
-    # read only because empty object while cart creation
-    id = serializers.UUIDField(read_only=True)
-    items = CartItemSerializer(many=True, read_only=True)
-    total_price = serializers.SerializerMethodField()
-    class Meta:
-        model = Cart
-        # in cartitem model, related_name=items is set, i.e items is a valid field of cart class
-        fields = ['id', 'items', 'total_price']
-
-    def get_total_price(self, cart):
-        return sum([item.quantity * item.product.unit_price for item in cart.items.all()])
 
 
 class AddCartItemSerializer(serializers.ModelSerializer):
@@ -107,3 +92,17 @@ class EditCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['quantity']
+
+
+class CartSerializer(serializers.ModelSerializer):
+    # read only because empty object while cart creation
+    id = serializers.UUIDField(read_only=True)
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
+    class Meta:
+        model = Cart
+        # in cartitem model, related_name=items is set, i.e items is a valid field of cart class
+        fields = ['id', 'items', 'total_price']
+
+    def get_total_price(self, cart):
+        return sum([item.quantity * item.product.unit_price for item in cart.items.all()])
