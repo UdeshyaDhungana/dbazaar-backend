@@ -81,7 +81,7 @@ class CustomerAdmin(admin.ModelAdmin):
     search_fields = ['first_name__istartswith', 'last_name__istartswith']
 
     def full_name(self, customer):
-        return customer.first_name + ' ' + customer.last_name
+        return customer.user.first_name + ' ' + customer.user.last_name
 
 
 class OrderItemInline(admin.TabularInline):
