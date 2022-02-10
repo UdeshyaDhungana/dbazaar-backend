@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import MaxLengthValidator, MinValueValidator
 from django.db.models.fields import related
+from django.conf import settings
+from uuid import uuid4
 
 
 # Create your models here.
@@ -50,17 +52,21 @@ class Customer(models.Model):
         (MEMBERSHIP_SILVER, "Silver"),
         (MEMBERSHIP_GOLD, "Gold"),
     ]
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15)
-    birthday = models.DateField(null=True)
+    birthday = models.DateField(null=True, blank=True)
     membership = models.CharField(choices=MEMBERSHIP_CHOICES,
                                   max_length=2,
                                   default=MEMBERSHIP_BRONZE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.first_name + ' ' + self.last_name
+        return self.user.first_name + ' ' + self.user.last_name
+
+    def email(self):
+        return self.user.email
+
+    class Meta:
+        ordering = ['user__first_name', 'user__last_name']
 
 
 class Address(models.Model):
@@ -85,9 +91,14 @@ class Order(models.Model):
                                       default=STATUS_PENDING)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
 
+    class Meta:
+        permissions = [
+            ('cancel_order', 'Can cancel order')
+        ]
+
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='orderitems')
     quantity = models.PositiveSmallIntegerField()
     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
