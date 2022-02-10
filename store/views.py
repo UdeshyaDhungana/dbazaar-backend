@@ -1,5 +1,6 @@
 from urllib import request
 from django.db.models import Count
+from django.db.models.query import QuerySet
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
@@ -39,7 +40,7 @@ class ProductsViewSet(ModelViewSet):
     #     return queryset
 
     def get_serializer_context(self):
-        return {'request': self.request}
+       return {'request': self.request}
 
     def destroy(self, request, *args, **kwargs):
         if (OrderItem.objects.filter(product_id=kwargs['pk']).count() > 0):
@@ -53,8 +54,7 @@ class ProductsViewSet(ModelViewSet):
 
 
 class CollectionViewSet(ModelViewSet):
-    queryset = Collection.objects.annotate(
-        products_count=Count('products')).all()
+    queryset = Collection.objects.annotate(products_count=Count('products')).all()
     serializer_class = CollectionSerializer
 
     permission_classes = [IsAdminOrReadOnly]
@@ -75,6 +75,7 @@ class CollectionViewSet(ModelViewSet):
 
 
 class ReviewViewSet(ModelViewSet):
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
     def get_queryset(self):

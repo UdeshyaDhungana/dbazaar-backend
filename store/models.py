@@ -105,17 +105,13 @@ class OrderItem(models.Model):
 
 
 class Cart(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid4)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
-
-    class Meta:
-        unique_together = [['cart', 'product']]
+    quantity = models.PositiveSmallIntegerField()
 
 
 class Promotion(models.Model):
