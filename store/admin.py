@@ -65,35 +65,13 @@ class ProductAdmin(admin.ModelAdmin):
         self.message_user(
             request, f'{updated_count} products were successfully updated',
             'success')
-
-    # forms customization
-    # fields = ['title', 'slug'] #bad
-    prepopulated_fields = {
-        'slug': ['title']
-    }
     autocomplete_fields = ['collection']
 
 @admin.register(models.Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'email', 'membership']
-    list_editable = ['membership']
+    list_display = ['full_name', 'email', ]
     list_per_page = 20
     search_fields = ['first_name__istartswith', 'last_name__istartswith']
 
     def full_name(self, customer):
         return customer.user.first_name + ' ' + customer.user.last_name
-
-
-class OrderItemInline(admin.TabularInline):
-    model = models.OrderItem
-    autocomplete_fields = ['product']
-    extra = 0
-    min_num = 1
-    max_num = 10
-
-@admin.register(models.Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ['customer', 'placed_at', 'payment_status']
-    autocomplete_fields = ['customer']
-    inlines = [OrderItemInline]
-    search_fields = ['customer__first_name__istartswith', 'customer__last_name__istartswith']
