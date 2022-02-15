@@ -16,7 +16,7 @@ from store.pagination import DefaultPagination
 from store.permissions import IsAdminOrReadOnly
 
 from .models import Cart, CartItem, Collection, Customer, Order, OrderItem, Product, Review
-from .serializers import (AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CreateOrderSerializer, CustomerSerializer, EditCartItemSerializer, EditOrderSerializer, OrderSerializer,
+from .serializers import (AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CreateOrderSerializer, CustomerSerializer, EditCartItemSerializer, UpdateOrderSerializer, OrderSerializer,
                           ProductSerializer, ReviewSerializer, UpdateOrderSerializer)
 
 
