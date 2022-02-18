@@ -1,43 +1,26 @@
 from urllib import request
+
 from django.db.models import Count
 from django.db.models.query import QuerySet
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from rest_framework.filters import SearchFilter
-from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.viewsets import ModelViewSet, GenericViewSet
-from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin
+from rest_framework.filters import SearchFilter
+from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+                                   RetrieveModelMixin, UpdateModelMixin)
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from rest_framework import permissions
 
 from store.filters import ProductFilter
 from store.pagination import DefaultPagination
-from store.permissions import IsAdminOrReadOnly
+from store.permissions import IsAdminOrReadOnly, IsProductOwner
 
-from .models import Cart, CartItem, Collection, Customer, Bid, Product, Speak
-from .serializers import (AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, SpeakSerializer,
-                          ProductSerializer,BidSerializer)
-
-
-class ProductsViewSet(ModelViewSet):
-    serializer_class = ProductSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_class = ProductFilter
-    search_fields = ['title', 'description']
-    pagination_class = DefaultPagination
-    permission_classes = [IsAdminOrReadOnly]
-
-    def get_queryset(self):
-        queryset = Product.objects.all()
-        collection_id = self.request.query_params.get('collection_id')
-        if collection_id is not None:
-            queryset = queryset.filter(collection_id=collection_id)
-        return queryset
-
-    def get_serializer_context(self):
-        return {'request': self.request}
-
+from .models import Collection, Customer, Product
+from .serializers import ( CollectionSerializer, CreateProductSerializer,
+                          CustomerSerializer, ProductSerializer,)
 
 class CollectionViewSet(ModelViewSet):
     queryset = Collection.objects.annotate(
@@ -50,48 +33,42 @@ class CollectionViewSet(ModelViewSet):
         if collection.products.count() > 0:
             return Response(
                 {
-                    'error':
-                    'Collection cannot be deleted because it includes products'
+                    'error': 'Collection cannot be deleted because it includes products'
                 },
                 status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class SpeakViewSet(ModelViewSet):
-    serializer_class = SpeakSerializer
-
-    def get_queryset(self):
-        return Speak.objects.filter(product_id=self.kwargs['product_pk'])
-
-    def get_serializer_context(self):
-        return {'product_id': self.kwargs['product_pk']}
-
-
-class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin,
-                  GenericViewSet):
-    queryset = Cart.objects.prefetch_related('items__product').all()
-    serializer_class = CartSerializer
-
-
-class CartItemViewSet(ModelViewSet):
-    # have to be in lowercase
-    http_method_names = ['get', 'post', 'delete']
+class ProductsViewSet(ModelViewSet):
+    serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = ProductFilter
+    search_fields = ['title', 'description']
+    pagination_class = DefaultPagination
 
     def get_serializer_class(self):
-        if (self.request.method == "POST"):
-            return AddCartItemSerializer
-        return CartItemSerializer
+        if self.request.method in ['POST', 'PATCH', 'PUT']:
+            return CreateProductSerializer
+        return ProductSerializer
 
-    def get_serializer_context(self):
-        return {
-            'cart_id': self.kwargs['cart_pk']
-        }
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [AllowAny()]
+        elif self.request.method == 'POST':
+            return [IsAuthenticated()]
+        else:
+            return [IsProductOwner()]
 
     def get_queryset(self):
-        return CartItem.objects\
-            .select_related('product')\
-            .filter(cart_id=self.kwargs['cart_pk'])
+        queryset = Product.objects.all()
+        collection_id = self.request.query_params.get('collection_id')
+        if collection_id is not None:
+            queryset = queryset.filter(collection_id=collection_id)
+        return queryset
+
+    def get_serializer_context(self):
+        return {'user': self.request.user}
 
 
 class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
@@ -109,7 +86,39 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
-          
 
-     
-   
+
+# class SpeakViewSet(ModelViewSet):
+#     serializer_class = SpeakSerializer
+
+#     def get_queryset(self):
+#         return Speak.objects.filter(product_id=self.kwargs['product_pk'])
+
+#     def get_serializer_context(self):
+#         return {'product_id': self.kwargs['product_pk']}
+
+
+# class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin,
+#                   GenericViewSet):
+#     queryset = Cart.objects.prefetch_related('items__product').all()
+#     serializer_class = CartSerializer
+
+
+# class CartItemViewSet(ModelViewSet):
+#     # have to be in lowercase
+#     http_method_names = ['get', 'post', 'delete']
+
+#     def get_serializer_class(self):
+#         if (self.request.method == "POST"):
+#             return AddCartItemSerializer
+#         return CartItemSerializer
+
+#     def get_serializer_context(self):
+#         return {
+#             'cart_id': self.kwargs['cart_pk']
+#         }
+
+#     def get_queryset(self):
+#         return CartItem.objects\
+#             .select_related('product')\
+#             .filter(cart_id=self.kwargs['cart_pk'])
