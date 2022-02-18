@@ -17,7 +17,7 @@ from store.permissions import IsAdminOrReadOnly
 
 from .models import Cart, CartItem, Collection, Customer, Bid, Product, Speak
 from .serializers import (AddCartItemSerializer, CartItemSerializer, CartSerializer, CollectionSerializer, CustomerSerializer, SpeakSerializer,
-                          ProductSerializer)
+                          ProductSerializer,BidSerializer)
 
 
 class ProductsViewSet(ModelViewSet):
@@ -109,3 +109,15 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+          
+ class BidViewSet(ModelViewSet): 
+    serializer_class=BidSerializer
+
+    def get_queryset(self):
+      return Bid.objects .filter(customer_id=self.kwargs['customer_pk'])
+
+
+   def get_serializer_context(self):
+     return {'customer_id': self.kwargs['customer_pk']}
+     
+   
