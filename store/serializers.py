@@ -119,14 +119,4 @@ class SpeakSerializer(serializers.ModelSerializer):
         ]
         
         
- class BidSerializer(serializers.ModelSerializer):
-
-
-    class Meta:
-        model= Bid
-        fields=['id','placed_at','description','price']
-
-    def create(self,validated_data):
-        customer_id=self.context['customer_id']
-        return Bid.objects.create(customer_id=customer_id,**validated_data)
-
+ 
