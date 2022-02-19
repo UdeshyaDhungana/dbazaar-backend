@@ -1,12 +1,14 @@
 from decimal import Decimal
+from email.mime import image
 import queue
+from urllib import request
 from django.conf import settings
 
 from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from .models import  Collection, Customer, Product
+from .models import  Collection, Customer, Product, Comment
 from .signals import order_created
 
 
@@ -40,7 +42,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 class CreateProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id', 'title', 'description', 'unit_price', 'collection']
+        fields = ['id', 'title', 'description', 'unit_price', 'collection', 'photo']
 
     def create(self, validated_data):
         user = self.context['user']
@@ -51,11 +53,15 @@ class CreateProductSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     collection = CollectionSerializer()
     owner = CustomerSerializer()
+    image = serializers.SerializerMethodField('get_image_url')
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'unit_price', 'collection', 'owner'
+            'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image'
         ]
+    
+    def get_image_url(self, obj):
+        return obj.photo.url
 
 
 class SimpleProductSerializer(serializers.ModelSerializer):
@@ -64,16 +70,23 @@ class SimpleProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'unit_price']
 
 
-# class Speak(serializers.ModelSerializer):
-#     class Meta:
-#         model = Speak
-#         fields = ['id', 'date', 'description', 'product', 'posted_by']
+class CreateCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ['id', 'date', 'description']
 
-#     def create(self, validated_data):
-#         product_id = self.context['product_id']
-#         posted_by_id = self.context
-#         print(posted_by_id)
-#         return Speak.objects.create(product_id=product_id, **validated_data)
+    def create(self, validated_data):
+        product_id = self.context['product_id']
+        commentor = Customer.objects.get(user=self.context['user'])
+        return Comment.objects.create(product_id=product_id, commentor=commentor, **validated_data)
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    commentor = CustomerSerializer()
+    product = SimpleProductSerializer()
+    class Meta:
+        model = Comment
+        fields = ['id', 'date', 'description', 'product', 'commentor']
 
 
 # class CartItemSerializer(serializers.ModelSerializer):

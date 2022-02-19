@@ -6,21 +6,6 @@ from django.utils.http import urlencode
 
 from . import models
 
-
-#Custom filter
-#inventory filter for products
-class InventoryFilter(admin.SimpleListFilter):
-    title = 'inventory'
-    parameter_name = 'inventory'
-
-    def lookups(self, request, model_admin):
-        return [('<10', 'Low')]
-
-    def queryset(self, request, queryset):
-        if self.value() == '<10':
-            return queryset.filter(inventory__lt=10)
-
-
 @admin.register(models.Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_per_page = 20
@@ -42,30 +27,17 @@ class CollectionAdmin(admin.ModelAdmin):
 
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
-    actions = ['clear_inventory']
     list_select_related = ['collection']
     list_display = [
-        'title', 'unit_price', 'inventory_status', 'collection_name'
+        'title', 'unit_price', 'collection_name'
     ]
     list_editable = ['unit_price']
     list_per_page = 20
-    list_filter = ['collection', 'last_update', InventoryFilter]
+    list_filter = ['collection', 'last_update']
     search_fields = ['title']
-
-    @admin.display(ordering='inventory')
-    def inventory_status(self, product):
-        return 'Low' if (product.inventory < 10) else 'OK'
 
     def collection_name(self, product):
         return product.collection.title
-
-    @admin.action(description='Clear Inventory')
-    def clear_inventory(self, request, queryset):
-        updated_count = queryset.update(inventory=0)
-        self.message_user(
-            request, f'{updated_count} products were successfully updated',
-            'success')
-    autocomplete_fields = ['collection']
 
 @admin.register(models.Customer)
 class CustomerAdmin(admin.ModelAdmin):

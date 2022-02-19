@@ -16,11 +16,12 @@ from rest_framework import permissions
 
 from store.filters import ProductFilter
 from store.pagination import DefaultPagination
-from store.permissions import IsAdminOrReadOnly, IsProductOwner
+from store.permissions import IsAdminOrReadOnly, IsCommentor, IsProductOwner
 
-from .models import Collection, Customer, Product
-from .serializers import ( CollectionSerializer, CreateProductSerializer,
+from .models import Collection, Customer, Product, Comment
+from .serializers import (CollectionSerializer, CommentSerializer, CreateCommentSerializer, CreateProductSerializer,
                           CustomerSerializer, ProductSerializer,)
+
 
 class CollectionViewSet(ModelViewSet):
     queryset = Collection.objects.annotate(
@@ -48,9 +49,9 @@ class ProductsViewSet(ModelViewSet):
     pagination_class = DefaultPagination
 
     def get_serializer_class(self):
-        if self.request.method in ['POST', 'PATCH', 'PUT']:
-            return CreateProductSerializer
-        return ProductSerializer
+        if self.request.method in permissions.SAFE_METHODS:
+            return ProductSerializer
+        return CreateProductSerializer
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -61,14 +62,16 @@ class ProductsViewSet(ModelViewSet):
             return [IsProductOwner()]
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.filter(visible=True)
         collection_id = self.request.query_params.get('collection_id')
         if collection_id is not None:
-            queryset = queryset.filter(collection_id=collection_id)
+            queryset = queryset.filter(
+                collection_id=collection_id, visible=True)
         return queryset
 
     def get_serializer_context(self):
         return {'user': self.request.user}
+
 
 
 class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
@@ -88,14 +91,29 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
             return Response(serializer.data)
 
 
-# class SpeakViewSet(ModelViewSet):
-#     serializer_class = SpeakSerializer
+class CommentViewSet(ModelViewSet):
 
-#     def get_queryset(self):
-#         return Speak.objects.filter(product_id=self.kwargs['product_pk'])
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [AllowAny()]
+        elif self.request.method == 'POST':
+            return [IsAuthenticated()]
+        else:
+            return [IsCommentor()]
 
-#     def get_serializer_context(self):
-#         return {'product_id': self.kwargs['product_pk']}
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return CommentSerializer
+        return CreateCommentSerializer
+
+    def get_queryset(self):
+        return Comment.objects.filter(product_id=self.kwargs['product_pk'])
+
+    def get_serializer_context(self):
+        return {
+            'product_id': self.kwargs['product_pk'],
+            'user': self.request.user,
+        }
 
 
 # class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin,

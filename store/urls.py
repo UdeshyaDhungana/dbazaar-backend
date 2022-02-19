@@ -13,7 +13,7 @@ router.register('customers', views.CustomerViewSet)
 
 # router.register('carts', views.CartViewSet, basename='carts')
 
-# products_router = routers.NestedDefaultRouter(router, 'products', lookup='product')
-# products_router.register('reviews', views.SpeakViewSet, basename='product-reviews')
+products_router = routers.NestedDefaultRouter(router, 'products', lookup='product')
+products_router.register('comments', views.CommentViewSet, basename='product-comment')
 
-urlpatterns = router.urls # + products_router.urls
+urlpatterns = router.urls + products_router.urls

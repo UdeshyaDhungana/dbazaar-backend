@@ -3,6 +3,9 @@ from django.core.validators import MaxLengthValidator, MinValueValidator
 from django.db.models.fields import related
 from django.conf import settings
 from uuid import uuid4
+from os import path
+
+from playground.settings import MEDIA_ROOT
 
 
 # Create your models here.
@@ -36,6 +39,8 @@ class Product(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     collection = models.ForeignKey(Collection, on_delete=models.PROTECT, related_name='products')
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='products')
+    visible = models.BooleanField(default=True)
+    photo = models.ImageField(upload_to='products', default=None)
 
     def __str__(self) -> str:
         return self.title
@@ -43,6 +48,12 @@ class Product(models.Model):
     class Meta:
         ordering = ['title']
 
+
+class Comment(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
+    description = models.TextField()
+    date = models.DateField(auto_now_add=True)
+    commentor = models.ForeignKey(Customer, on_delete=models.CASCADE)
 
 # Later ==========================
 # class Bid(models.Model):
@@ -63,11 +74,6 @@ class Product(models.Model):
 #     product = models.ForeignKey(Product, on_delete=models.CASCADE)
 
 
-# class Speak(models.Model):
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
-#     description = models.TextField()
-#     date = models.DateField(auto_now_add=True)
-#     posted_by = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 # class Reply(models.Model):
