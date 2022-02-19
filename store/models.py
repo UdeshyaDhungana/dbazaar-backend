@@ -56,13 +56,14 @@ class Comment(models.Model):
     commentor = models.ForeignKey(Customer, on_delete=models.CASCADE)
 
 # Later ==========================
-# class Bid(models.Model):
-#     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-#     placed_at = models.DateTimeField(auto_now_add=True)
-#     price = models.DecimalField(max_digits=10,
-#                                      decimal_places=2,
-#                                      validators=[MinValueValidator(1)])
-#     description = models.TextField()
+class Bid(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    placed_at = models.DateTimeField(auto_now_add=True)
+    price = models.DecimalField(max_digits=10,
+                                     decimal_places=2,
+                                     validators=[MinValueValidator(1)])
+    description = models.TextField()
+    approved = models.BooleanField(default=None)
 
 
 # class Cart(models.Model):

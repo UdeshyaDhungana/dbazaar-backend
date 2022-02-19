@@ -92,7 +92,6 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
 
 
 class CommentViewSet(ModelViewSet):
-
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
             return [AllowAny()]
@@ -114,7 +113,6 @@ class CommentViewSet(ModelViewSet):
             'product_id': self.kwargs['product_pk'],
             'user': self.request.user,
         }
-
 
 # class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin,
 #                   GenericViewSet):
