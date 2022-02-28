@@ -50,20 +50,21 @@ class Product(models.Model):
 
 
 class Comment(models.Model):
+    commentor = models.ForeignKey(Customer, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
     description = models.TextField()
     date = models.DateField(auto_now_add=True)
-    commentor = models.ForeignKey(Customer, on_delete=models.CASCADE)
 
 # Later ==========================
 class Bid(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    placed_at = models.DateTimeField(auto_now_add=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='bids')
     price = models.DecimalField(max_digits=10,
                                      decimal_places=2,
                                      validators=[MinValueValidator(1)])
     description = models.TextField()
-    approved = models.BooleanField(default=None)
+    placed_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)
 
 
 # class Cart(models.Model):

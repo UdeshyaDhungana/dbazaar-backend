@@ -8,14 +8,14 @@ from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from .models import  Collection, Customer, Product, Comment
+from .models import Bid, Collection, Customer, Product, Comment
 from .signals import order_created
 
 
 class CustomerSerializer(serializers.ModelSerializer):
     firstname = serializers.SerializerMethodField('get_firstname')
     lastname = serializers.SerializerMethodField('get_lastname')
-    
+
     class Meta:
         model = Customer
         fields = [
@@ -28,7 +28,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def get_firstname(self, obj):
         return obj.user.first_name
-    
+
     def get_lastname(self, obj):
         return obj.user.last_name
 
@@ -42,7 +42,8 @@ class CollectionSerializer(serializers.ModelSerializer):
 class CreateProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id', 'title', 'description', 'unit_price', 'collection', 'photo']
+        fields = ['id', 'title', 'description',
+                  'unit_price', 'collection', 'photo']
 
     def create(self, validated_data):
         user = self.context['user']
@@ -54,12 +55,13 @@ class ProductSerializer(serializers.ModelSerializer):
     collection = CollectionSerializer()
     owner = CustomerSerializer()
     image = serializers.SerializerMethodField('get_image_url')
+
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image'
         ]
-    
+
     def get_image_url(self, obj):
         return obj.photo.url
 
@@ -73,7 +75,7 @@ class SimpleProductSerializer(serializers.ModelSerializer):
 class CreateCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['id', 'date', 'description']
+        fields = ['id', 'date', 'description',]
 
     def create(self, validated_data):
         product_id = self.context['product_id']
@@ -84,10 +86,36 @@ class CreateCommentSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     commentor = CustomerSerializer()
     product = SimpleProductSerializer()
+
     class Meta:
         model = Comment
         fields = ['id', 'date', 'description', 'product', 'commentor']
 
+
+class CreateBidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bid
+        fields = ['id', 'price', 'description']
+
+    def create(self, validated_data):
+        product_id = self.context['product_id']
+        bidder = Customer.objects.get(user=self.context['user'])
+        return Bid.objects.create(product_id=product_id, customer=bidder, **validated_data)
+
+
+class BidSerializer(serializers.ModelSerializer):
+    customer = CustomerSerializer()
+    product = SimpleProductSerializer()
+
+    class Meta:
+        model = Bid
+        fields = ['id', 'placed_at', 'price', 'description', 'product', 'customer']
+
+
+class ApproveBidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bid
+        fields = ['approved']
 
 # class CartItemSerializer(serializers.ModelSerializer):
 #     product = SimpleProductSerializer()
@@ -135,9 +163,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 #     def get_total_price(self, cart):
 #         return sum([item.product.unit_price for item in cart.items.all()])
-
-
-
 
 
 # class SpeakSerializer(serializers.ModelSerializer):

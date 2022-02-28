@@ -1,7 +1,6 @@
 from django.urls import path
 from rest_framework import routers
 from . import views
-from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
 
 #url configuration
@@ -15,6 +14,6 @@ router.register('customers', views.CustomerViewSet)
 
 products_router = routers.NestedDefaultRouter(router, 'products', lookup='product')
 products_router.register('comments', views.CommentViewSet, basename='product-comment')
-# products_router.register('bids', views.BidViewSet, basename='product-bid')
+products_router.register('bids', views.BidViewSet, basename='product-bid')
 
 urlpatterns = router.urls + products_router.urls

@@ -9,18 +9,18 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    RetrieveModelMixin, UpdateModelMixin)
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework import permissions
 
 from store.filters import ProductFilter
 from store.pagination import DefaultPagination
-from store.permissions import IsAdminOrReadOnly, IsCommentor, IsProductOwner
+from store.permissions import IsAdminOrReadOnly, IsCommentor, IsProductOwner, IsBidder, IsItemOwner, NotIsItemOwner
 
-from .models import Collection, Customer, Product, Comment
-from .serializers import (CollectionSerializer, CommentSerializer, CreateCommentSerializer, CreateProductSerializer,
-                          CustomerSerializer, ProductSerializer,)
+from .models import Bid, Collection, Customer, Product, Comment
+from .serializers import (BidSerializer, CollectionSerializer, CommentSerializer, CreateBidSerializer, CreateCommentSerializer, CreateProductSerializer,
+                          CustomerSerializer, ProductSerializer, ApproveBidSerializer)
 
 
 class CollectionViewSet(ModelViewSet):
@@ -62,7 +62,7 @@ class ProductsViewSet(ModelViewSet):
             return [IsProductOwner()]
 
     def get_queryset(self):
-        queryset = Product.objects.filter(visible=True)
+        queryset = Product.objects.filter().prefetch_related('collection', 'owner__user')
         collection_id = self.request.query_params.get('collection_id')
         if collection_id is not None:
             queryset = queryset.filter(
@@ -71,7 +71,6 @@ class ProductsViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'user': self.request.user}
-
 
 
 class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, GenericViewSet):
@@ -92,13 +91,14 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
 
 
 class CommentViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'put', 'delete']
+
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
             return [AllowAny()]
         elif self.request.method == 'POST':
             return [IsAuthenticated()]
-        else:
-            return [IsCommentor()]
+        return [IsCommentor()]
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -106,7 +106,36 @@ class CommentViewSet(ModelViewSet):
         return CreateCommentSerializer
 
     def get_queryset(self):
-        return Comment.objects.filter(product_id=self.kwargs['product_pk'])
+        return Comment.objects.filter(product_id=self.kwargs['product_pk']).prefetch_related('commentor__user', 'product')
+
+    def get_serializer_context(self):
+        return {
+            'product_id': self.kwargs['product_pk'],
+            'user': self.request.user,
+        }
+
+
+class BidViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'put', 'delete']
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [AllowAny(), ]
+        elif self.request.method == 'POST':
+            return [NotIsItemOwner()]
+        elif self.request.method == 'PUT':
+            return [IsItemOwner()]
+        return [IsBidder()]
+
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return BidSerializer
+        elif self.request.method == "PUT":
+            return ApproveBidSerializer
+        return CreateBidSerializer
+
+    def get_queryset(self):
+        return Bid.objects.filter(product_id=self.kwargs['product_pk']).prefetch_related('customer__user', 'product')
 
     def get_serializer_context(self):
         return {
