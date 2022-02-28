@@ -53,7 +53,10 @@ class Comment(models.Model):
     commentor = models.ForeignKey(Customer, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
     description = models.TextField()
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.description
 
 # Later ==========================
 class Bid(models.Model):

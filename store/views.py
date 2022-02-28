@@ -106,7 +106,7 @@ class CommentViewSet(ModelViewSet):
         return CreateCommentSerializer
 
     def get_queryset(self):
-        return Comment.objects.filter(product_id=self.kwargs['product_pk']).prefetch_related('commentor__user', 'product')
+        return list(Comment.objects.filter(product_id=self.kwargs['product_pk']).order_by('-date')) #.prefetch_related('commentor__user', 'product')
 
     def get_serializer_context(self):
         return {
@@ -135,7 +135,7 @@ class BidViewSet(ModelViewSet):
         return CreateBidSerializer
 
     def get_queryset(self):
-        return Bid.objects.filter(product_id=self.kwargs['product_pk']).prefetch_related('customer__user', 'product')
+        return Bid.objects.filter(product_id=self.kwargs['product_pk']).order_by('-date').prefetch_related('customer__user', 'product')
 
     def get_serializer_context(self):
         return {
