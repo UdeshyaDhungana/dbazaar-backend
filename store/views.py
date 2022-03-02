@@ -106,7 +106,7 @@ class CommentViewSet(ModelViewSet):
         return CreateCommentSerializer
 
     def get_queryset(self):
-        return list(Comment.objects.filter(product_id=self.kwargs['product_pk']).order_by('-date')) #.prefetch_related('commentor__user', 'product')
+        return Comment.objects.filter(product_id=self.kwargs['product_pk']).order_by('-date').prefetch_related('commentor__user', 'product')
 
     def get_serializer_context(self):
         return {
@@ -120,7 +120,7 @@ class BidViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
-            return [AllowAny(), ]
+            return [IsAuthenticated(), ]
         elif self.request.method == 'POST':
             return [NotIsItemOwner()]
         elif self.request.method == 'PUT':
@@ -135,7 +135,7 @@ class BidViewSet(ModelViewSet):
         return CreateBidSerializer
 
     def get_queryset(self):
-        return Bid.objects.filter(product_id=self.kwargs['product_pk']).order_by('-date').prefetch_related('customer__user', 'product')
+        return Bid.objects.filter(product_id=self.kwargs['product_pk']).order_by('-placed_at').prefetch_related('customer__user', 'product')
 
     def get_serializer_context(self):
         return {
