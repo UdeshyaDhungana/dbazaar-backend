@@ -1,26 +1,29 @@
 from urllib import request
-
+from django.db import DatabaseError, transaction
 from django.db.models import Count
-from django.db.models.query import QuerySet
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status
+from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
-from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+from rest_framework.mixins import (CreateModelMixin,
                                    RetrieveModelMixin, UpdateModelMixin)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
-from rest_framework import permissions
 
 from store.filters import ProductFilter
 from store.pagination import DefaultPagination
-from store.permissions import IsAdminOrReadOnly, IsCommentor, IsProductOwner, IsBidder, IsItemOwner, NotIsItemOwner
+from store.permissions import (IsAdminOrReadOnly, IsBidder, IsBuyer, IsCommentor,
+                               IsItemOwner, IsProductOwner, NotIsItemOwner)
 
-from .models import Bid, Collection, Customer, Product, Comment
-from .serializers import (BidSerializer, CollectionSerializer, CommentSerializer, CreateBidSerializer, CreateCommentSerializer, CreateProductSerializer,
-                          CustomerSerializer, ProductSerializer, ApproveBidSerializer)
+from .models import Bid, Collection, Comment, Customer, Product, Transfer
+from .serializers import (ApproveBidSerializer, ApproveTransferSerializer, BidSerializer,
+                          CollectionSerializer, CommentSerializer,
+                          CreateBidSerializer, CreateCommentSerializer,
+                          CreateProductSerializer, CustomerSerializer,
+                          ProductSerializer, TransferSerializer)
 
 
 class CollectionViewSet(ModelViewSet):
@@ -120,12 +123,12 @@ class BidViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
-            return [IsAuthenticated(), ]
+            return [ IsAuthenticated(), ]
         elif self.request.method == 'POST':
-            return [NotIsItemOwner()]
+            return [ NotIsItemOwner() ]
         elif self.request.method == 'PUT':
-            return [IsItemOwner()]
-        return [IsBidder()]
+            return [ IsItemOwner()]
+        return [ IsBidder() ]
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -143,27 +146,58 @@ class BidViewSet(ModelViewSet):
             'user': self.request.user,
         }
 
-# class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin,
-#                   GenericViewSet):
-#     queryset = Cart.objects.prefetch_related('items__product').all()
-#     serializer_class = CartSerializer
+    def update(self, request, *args, **kwargs):
+        bid = get_object_or_404(Bid, pk=self.kwargs['pk'])
+        user = request.user
+        try:
+            with transaction.atomic():
+                transfer = Transfer.objects.create(product=bid.product, seller=user.customer, buyer=bid.customer)
+                product = Product.objects.get(pk=bid.product.id)
+                product.visible = False
+                bid.approved = True
+                transfer.save()
+                product.save()
+                bid.save()
+        except (DatabaseError):
+            return Response({"error": "Internal Server Error while performing transaction"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'success': 'Bid has been approved, transfer has been created', }, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if (instance.approved):
+                return Response({'error': "Cannot delete approved bid"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            self.perform_destroy(instance=instance)
+        except Http404:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# class CartItemViewSet(ModelViewSet):
-#     # have to be in lowercase
-#     http_method_names = ['get', 'post', 'delete']
+class TransferViewset(ModelViewSet):
+    http_method_names = ['get', 'put']
 
-#     def get_serializer_class(self):
-#         if (self.request.method == "POST"):
-#             return AddCartItemSerializer
-#         return CartItemSerializer
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [AllowAny()]
+        return [IsBuyer()]
 
-#     def get_serializer_context(self):
-#         return {
-#             'cart_id': self.kwargs['cart_pk']
-#         }
+    def get_queryset(self):
+        user = self.request.user
+        return (Transfer.objects.filter(buyer=user.customer).union(Transfer.objects.filter(seller=user.customer)))
 
-#     def get_queryset(self):
-#         return CartItem.objects\
-#             .select_related('product')\
-#             .filter(cart_id=self.kwargs['cart_pk'])
+    def get_serializer_class(self):
+        if self.request.method == 'PUT':
+            return ApproveTransferSerializer
+        return TransferSerializer
+
+    def update(self, request, *args, **kwargs):
+        transfer = get_object_or_404(Transfer, pk=self.kwargs['pk'])
+        try:
+            with transaction.atomic():
+                product_id = transfer.product.id
+                product = Product.objects.get(pk=product_id)
+                product.owner = transfer.buyer
+                product.save()
+                transfer.delete()
+        except DatabaseError:
+            return Response({ 'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

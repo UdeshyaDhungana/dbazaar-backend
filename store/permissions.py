@@ -57,7 +57,12 @@ class NotIsItemOwner(permissions.BasePermission):
             return True
         pk = view.kwargs['product_pk']
         product = Product.objects.get(pk=pk)
-        return bool(request.user and request.user.is_authenticated and product.owner.user != request.user)
+        return bool(product.visible and request.user and request.user.is_authenticated and product.owner.user != request.user)
 
     def has_object_permission(self, request, view, bid):
-        return request.user and bid.product.owner.user != request.user
+        return bid.product.visible and request.user and bid.product.owner.user != request.user
+
+
+class IsBuyer(permissions.BasePermission):
+    def has_object_permission(self, request, view, transfer):
+        return request.user and transfer.buyer == request.user

@@ -8,7 +8,7 @@ from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-from .models import Bid, Collection, Customer, Product, Comment
+from .models import Bid, Collection, Customer, Product, Comment, Transfer
 from .signals import order_created
 
 
@@ -59,7 +59,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image'
+            'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image', 'visible'
         ]
 
     def get_image_url(self, obj):
@@ -109,13 +109,28 @@ class BidSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bid
-        fields = ['id', 'placed_at', 'price', 'description', 'product', 'customer']
+        fields = ['id', 'placed_at', 'price', 'description', 'product', 'customer', 'approved']
 
 
 class ApproveBidSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bid
         fields = ['approved']
+
+
+class TransferSerializer(serializers.ModelSerializer):
+    product = SimpleProductSerializer()
+    seller = CustomerSerializer()
+    buyer = CustomerSerializer()
+    class Meta:
+        model = Transfer
+        fields = [ 'buyer', 'seller', 'product', 'completed' ]
+
+
+class ApproveTransferSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transfer
+        fields = [ 'completed' ]
 
 # class CartItemSerializer(serializers.ModelSerializer):
 #     product = SimpleProductSerializer()

@@ -1,3 +1,4 @@
+from statistics import mode
 from django.db import models
 from django.core.validators import MaxLengthValidator, MinValueValidator
 from django.db.models.fields import related
@@ -69,18 +70,10 @@ class Bid(models.Model):
     placed_at = models.DateTimeField(auto_now_add=True)
     approved = models.BooleanField(default=False)
 
+# Once a bid is approved, delete all other bids of that product
 
-# class Cart(models.Model):
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-
-# class CartItem(models.Model):
-#     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-
-
-
-
-# class Reply(models.Model):
-#     speak = models.ForeignKey(Speak, on_delete=models.CASCADE)
-#     posted_by = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+class Transfer(models.Model):
+    completed = models.BooleanField(default=False)
+    buyer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='incoming_transfers')
+    seller = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='outgoing_transfers')
+    product = models.OneToOneField(Product, on_delete=models.PROTECT, related_name='transfer')
