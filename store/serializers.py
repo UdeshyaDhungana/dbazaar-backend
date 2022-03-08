@@ -124,7 +124,7 @@ class TransferSerializer(serializers.ModelSerializer):
     buyer = CustomerSerializer()
     class Meta:
         model = Transfer
-        fields = [ 'buyer', 'seller', 'product', 'completed' ]
+        fields = [ 'id', 'buyer', 'seller', 'product', 'completed' ]
 
 
 class ApproveTransferSerializer(serializers.ModelSerializer):

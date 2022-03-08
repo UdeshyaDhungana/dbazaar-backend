@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from urllib import request
 from django.db import DatabaseError, transaction
 from django.db.models import Count
@@ -178,12 +179,14 @@ class TransferViewset(ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
-            return [AllowAny()]
+            return [IsAuthenticated()]
         return [IsBuyer()]
 
     def get_queryset(self):
         user = self.request.user
-        return (Transfer.objects.filter(buyer=user.customer).union(Transfer.objects.filter(seller=user.customer)))
+        myPurchaseTransfers = Transfer.objects.filter(buyer=user.customer)
+        mySalesTransfers = Transfer.objects.filter(seller=user.customer)
+        return myPurchaseTransfers | mySalesTransfers
 
     def get_serializer_class(self):
         if self.request.method == 'PUT':
@@ -192,12 +195,18 @@ class TransferViewset(ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         transfer = get_object_or_404(Transfer, pk=self.kwargs['pk'])
+        product_id = transfer.product.id
         try:
             with transaction.atomic():
-                product_id = transfer.product.id
                 product = Product.objects.get(pk=product_id)
                 product.owner = transfer.buyer
                 product.save()
                 transfer.delete()
+                # Delete related bids
+                bids = Bid.objects.filter(product=transfer.product)
+                bids.delete()
         except DatabaseError:
             return Response({ 'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = ProductSerializer(Product.objects.get(pk=product_id))
+        return Response({ "product": serializer.validated_data }, status=status.HTTP_200_OK)
