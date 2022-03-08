@@ -124,12 +124,12 @@ class BidViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
-            return [ IsAuthenticated(), ]
+            return [IsAuthenticated(), ]
         elif self.request.method == 'POST':
-            return [ NotIsItemOwner() ]
+            return [NotIsItemOwner()]
         elif self.request.method == 'PUT':
-            return [ IsItemOwner()]
-        return [ IsBidder() ]
+            return [IsItemOwner()]
+        return [IsBidder()]
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -152,7 +152,8 @@ class BidViewSet(ModelViewSet):
         user = request.user
         try:
             with transaction.atomic():
-                transfer = Transfer.objects.create(product=bid.product, seller=user.customer, buyer=bid.customer)
+                transfer = Transfer.objects.create(
+                    product=bid.product, seller=user.customer, buyer=bid.customer)
                 product = Product.objects.get(pk=bid.product.id)
                 product.visible = False
                 bid.approved = True
@@ -160,8 +161,14 @@ class BidViewSet(ModelViewSet):
                 product.save()
                 bid.save()
         except (DatabaseError):
-            return Response({"error": "Internal Server Error while performing transaction"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({'success': 'Bid has been approved, transfer has been created', }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "error": "Internal Server Error while performing transaction"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        transfer = Transfer.objects.get(product=bid.product, seller=user.customer, buyer=bid.customer)
+        serializer = TransferSerializer(transfer)
+        return Response({'data': serializer.data, }, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         try:
@@ -206,7 +213,9 @@ class TransferViewset(ModelViewSet):
                 bids = Bid.objects.filter(product=transfer.product)
                 bids.delete()
         except DatabaseError:
-            return Response({ 'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         serializer = ProductSerializer(Product.objects.get(pk=product_id))
-        return Response({ "product": serializer.validated_data }, status=status.HTTP_200_OK)
+        if serializer.is_valid():
+            return Response({"product": serializer.validated_data}, status=status.HTTP_200_OK)
+        return Response({'error': 'An unkonwn error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

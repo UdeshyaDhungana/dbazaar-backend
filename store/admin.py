@@ -47,3 +47,8 @@ class CustomerAdmin(admin.ModelAdmin):
 
     def full_name(self, customer):
         return customer.user.first_name + ' ' + customer.user.last_name
+
+
+admin.site.register(models.Comment)
+admin.site.register(models.Bid)
+admin.site.register(models.Transfer)
