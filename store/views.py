@@ -215,7 +215,6 @@ class TransferViewset(ModelViewSet):
         except DatabaseError:
             return Response({'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        serializer = ProductSerializer(Product.objects.get(pk=product_id))
-        if serializer.is_valid():
-            return Response({"product": serializer.validated_data}, status=status.HTTP_200_OK)
-        return Response({'error': 'An unkonwn error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        product = Product.objects.get(pk=product_id)
+        serializer = ProductSerializer(product)
+        return Response(serializer.data, status=status.HTTP_200_OK)

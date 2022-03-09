@@ -67,9 +67,13 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class SimpleProductSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField('get_image_url')
     class Meta:
         model = Product
-        fields = ['id', 'title', 'unit_price']
+        fields = ['id', 'title', 'unit_price', 'image']
+
+    def get_image_url(self, obj):
+        return obj.photo.url
 
 
 class CreateCommentSerializer(serializers.ModelSerializer):
