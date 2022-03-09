@@ -73,6 +73,26 @@ class ProductsViewSet(ModelViewSet):
                 collection_id=collection_id, visible=True)
         return queryset
 
+    @action(detail=True, methods=['get', 'put'])
+    def visibility(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        if request.method == 'GET':
+            return Response({})
+        else:
+            if (request.query_params.get('visible') == 'true'):
+                product.visible = True               
+            elif (request.query_params.get('visible') == 'false'):
+                product.visible = False
+            else:
+                return Response({})
+            product.save()
+            Bid.objects.filter(product=product).delete()
+            Transfer.objects.filter(product=product).delete()
+            product = Product.objects.get(pk=pk)
+            serializer = ProductSerializer(product)
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        
+
     def get_serializer_context(self):
         return {'user': self.request.user}
 
