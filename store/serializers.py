@@ -48,7 +48,7 @@ class CreateProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'description',
-                  'unit_price', 'collection', 'photo']
+                  'unit_price', 'collection', 'photo', 'product_hash']
 
     def create(self, validated_data):
         user = self.context['user']
@@ -64,7 +64,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image', 'visible'
+            'id', 'title', 'description', 'unit_price', 'collection', 'owner', 'image', 'visible', 'product_hash'
         ]
 
     def get_image_url(self, obj):
@@ -75,7 +75,7 @@ class SimpleProductSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField('get_image_url')
     class Meta:
         model = Product
-        fields = ['id', 'title', 'unit_price', 'image']
+        fields = ['id', 'title', 'unit_price', 'image', 'product_hash']
 
     def get_image_url(self, obj):
         return obj.photo.url

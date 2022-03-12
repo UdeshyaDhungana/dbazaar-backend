@@ -42,6 +42,7 @@ class Product(models.Model):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='products')
     visible = models.BooleanField(default=True)
     photo = models.ImageField(upload_to='products', default=None)
+    product_hash = models.CharField(max_length=64, unique=True)
 
     def __str__(self) -> str:
         return self.title
