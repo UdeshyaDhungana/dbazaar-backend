@@ -15,6 +15,7 @@ from .signals import order_created
 class CustomerSerializer(serializers.ModelSerializer):
     firstname = serializers.SerializerMethodField('get_firstname')
     lastname = serializers.SerializerMethodField('get_lastname')
+    wallet_address = serializers.SerializerMethodField('get_wallet_address')
 
     class Meta:
         model = Customer
@@ -24,6 +25,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             'phone',
             'firstname',
             'lastname',
+            'wallet_address'
         ]
 
     def get_firstname(self, obj):
@@ -31,6 +33,9 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def get_lastname(self, obj):
         return obj.user.last_name
+
+    def get_wallet_address(self, obj):
+        return obj.user.wallet_address
 
 
 class CollectionSerializer(serializers.ModelSerializer):
