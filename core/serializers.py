@@ -12,7 +12,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
             'first_name',
             'last_name',
             'wallet_address',
-            'public_key'
+            'public_key',
         ]
     
 
@@ -24,7 +24,7 @@ class UserSerializer(BaseUserSerializer):
             'username',
             'first_name',
             'last_name',
-            'wallet_address'
+            'wallet_address',
             'public_key',
             'verified',
         ]

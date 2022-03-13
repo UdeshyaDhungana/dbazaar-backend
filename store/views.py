@@ -107,7 +107,7 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
 
     @action(detail=False, methods=['GET', 'PUT'])
     def me(self, request):
-        customer = Customer.objects.get(user_id=request.user.id)
+        customer = get_object_or_404(Customer, user_id = request.user.id)
         if request.method == 'GET':
             serializer = CustomerSerializer(customer)
             return Response(serializer.data)
@@ -120,6 +120,10 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
     @action(detail=False, methods=['GET'])
     def get_token(self, request):
         user = get_object_or_404(User, pk=request.user.id)
+        if (user.verified):
+            customer = Customer.object.get(user=user)
+            serializer = CustomerSerializer(customer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         user.randomString = uuid1(random.randint(0, 281474976710655))
         user.save()
         return Response({ 'token': user.randomString }, status=status.HTTP_200_OK)
