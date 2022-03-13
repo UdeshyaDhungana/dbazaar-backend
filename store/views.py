@@ -1,5 +1,8 @@
 from http import HTTPStatus
+from os import stat
+import random
 from urllib import request
+from uuid import uuid1
 from django.db import DatabaseError, transaction
 from django.db.models import Count
 from django.http import Http404
@@ -13,6 +16,7 @@ from rest_framework.mixins import (CreateModelMixin,
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from core.models import User
 
 from store.filters import ProductFilter
 from store.pagination import DefaultPagination
@@ -112,6 +116,18 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'])
+    def get_token(self, request):
+        user = get_object_or_404(User, pk=request.user.id)
+        user.randomString = uuid1(random.randint(0, 281474976710655))
+        user.save()
+        return Response({ 'token': user.randomString }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['POST'])
+    def verify_token(self, request):
+        # To be implemented
+        return Response('ok')
 
 
 class CommentViewSet(ModelViewSet):

@@ -25,5 +25,6 @@ class UserSerializer(BaseUserSerializer):
             'first_name',
             'last_name',
             'wallet_address'
-            'public_key'
+            'public_key',
+            'verified',
         ]

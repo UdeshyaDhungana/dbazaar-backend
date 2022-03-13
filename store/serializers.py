@@ -17,6 +17,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     lastname = serializers.SerializerMethodField('get_lastname')
     wallet_address = serializers.SerializerMethodField('get_wallet_address')
     public_key = serializers.SerializerMethodField('get_public_key')
+    verified = serializers.SerializerMethodField('get_verified')
 
     class Meta:
         model = Customer
@@ -26,7 +27,9 @@ class CustomerSerializer(serializers.ModelSerializer):
             'phone',
             'firstname',
             'lastname',
-            'wallet_address'
+            'wallet_address',
+            'public_key',
+            'verified',
         ]
 
     def get_firstname(self, obj):
@@ -40,6 +43,9 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def get_public_key(self, obj):
         return obj.user.public_key
+
+    def get_verified(self, obj):
+        return obj.user.verified
 
 
 class CollectionSerializer(serializers.ModelSerializer):
