@@ -152,10 +152,10 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
         publicKey = request.user.public_key
         # Make request
         try:
-            signedToken = int(request.data.get('signed_token'), 16)
+            signedToken = request.data.get('signed_token')
             payload = {
                 "token": str(originalToken),
-                "signed_token": signedToken,
+                "signed_token": str(signedToken),
                 "public_key": publicKey,
             }
             response = requests.post('http://localhost:8080/token/verify', json=payload)
