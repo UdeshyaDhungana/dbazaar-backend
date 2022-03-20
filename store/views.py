@@ -63,16 +63,17 @@ class ProductsViewSet(ModelViewSet):
         # send request data, receive pubkey hash, compare with following
         try:
             # use productHash later
-            response = requests.get('http://localhost:8080/item/owner/' + productHash)
+            response = requests.get(
+                'http://localhost:8080/item/owner/' + productHash)
             if 'item_owner' in response.json().keys() and request.user.public_key_hash == response.json()['item_owner']:
                 serializer = self.get_serializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 self.perform_create(serializer)
                 headers = self.get_success_headers(serializer.data)
                 return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-            return Response({ 'error': 'Item not registered under the provided user\'s address' }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Item not registered under the provided user\'s address'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({ 'error': 'An unknown error occured' }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': 'An unknown error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -158,14 +159,16 @@ class CustomerViewSet(CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, Ge
                 "signed_token": str(signedToken),
                 "public_key": publicKey,
             }
-            response = requests.post('http://localhost:8080/token/verify', json=payload)
+            response = requests.post(
+                'http://localhost:8080/token/verify', json=payload)
             if 'verified' in response.json().keys():
                 user = User.objects.get(pk=request.user.id)
                 user.verified = True
                 user.save()
-                return Response({ 'success': 'User Verified Successfully '}, status=status.HTTP_202_ACCEPTED)
+                return Response({'success': 'User Verified Successfully '}, status=status.HTTP_202_ACCEPTED)
             else:
-                raise Response({ 'error': 'Token could not be verified '}, status=status.HTTP_400_BAD_REQUEST)
+                raise Response(
+                    {'error': 'Token could not be verified '}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': 'Some unknown error occured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -280,17 +283,23 @@ class TransferViewset(ModelViewSet):
     def update(self, request, *args, **kwargs):
         transfer = get_object_or_404(Transfer, pk=self.kwargs['pk'])
         product_id = transfer.product.id
-        try:
-            with transaction.atomic():
-                product = Product.objects.get(pk=product_id)
-                product.owner = transfer.buyer
-                product.save()
-                transfer.delete()
-                # Delete related bids
-                bids = Bid.objects.filter(product=transfer.product)
-                bids.delete()
-        except DatabaseError:
-            return Response({'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        productHash = transfer.product.product_hash
+        # check if the transfer is done in blockchain
+        response = requests.get('http://localhost:8080/item/owner/' + productHash)
+        if 'item_owner' in response.json().keys() and request.user.public_key_hash == response.json()['item_owner']:
+            try:
+                with transaction.atomic():
+                    product = Product.objects.get(pk=product_id)
+                    product.owner = transfer.buyer
+                    product.save()
+                    transfer.delete()
+                    # Delete related bids
+                    bids = Bid.objects.filter(product=transfer.product)
+                    bids.delete()
+            except DatabaseError:
+                return Response({'error': 'Internal Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({ 'error': 'Error verifying from blockchain'}, status=status.HTTP_402_PAYMENT_REQUIRED);
 
         product = Product.objects.get(pk=product_id)
         serializer = ProductSerializer(product)
